@@ -568,12 +568,15 @@ static void NewBuffer_callback (ArvStream *pStream, ApplicationData *pApplicatio
 
 			// get current CameraInfo data
 			global.camerainfo = global.pCameraInfoManager->getCameraInfo();
+
 			global.camerainfo.header.stamp = msg.header.stamp;
 			global.camerainfo.header.seq = msg.header.seq;
 			global.camerainfo.header.frame_id = msg.header.frame_id;
-			global.camerainfo.width = global.widthRoi;
-			global.camerainfo.height = global.heightRoi;
-
+			if (!global.phNode->hasParam(ros::this_node::getName()+"/camera_info_url"))
+			{
+				global.camerainfo.width = global.widthRoi;
+				global.camerainfo.height = global.heightRoi;
+			}
 			global.publisher.publish(msg, global.camerainfo);
 				
         }
@@ -1003,7 +1006,16 @@ int main(int argc, char** argv)
 #endif
     	
 		// Start the camerainfo manager.
-		global.pCameraInfoManager = new camera_info_manager::CameraInfoManager(ros::NodeHandle(ros::this_node::getName()), arv_device_get_string_feature_value (global.pDevice, "DeviceID"));
+		if (global.phNode->hasParam(ros::this_node::getName()+"/camera_info_url"))
+		{
+			std::string		stCameraInfo;
+			
+			global.phNode->getParam(ros::this_node::getName()+"/camera_info_url", stCameraInfo);
+			global.pCameraInfoManager = new camera_info_manager::CameraInfoManager(ros::NodeHandle(ros::this_node::getName()), arv_device_get_string_feature_value (global.pDevice, "DeviceID"), stCameraInfo);
+		} else {
+			global.pCameraInfoManager = new camera_info_manager::CameraInfoManager(ros::NodeHandle(ros::this_node::getName()), arv_device_get_string_feature_value (global.pDevice, "DeviceID"));
+		}
+		
 
 		// Start the dynamic_reconfigure server.
 		dynamic_reconfigure::Server<Config> 				reconfigureServer;
